@@ -1,0 +1,15 @@
+#AV
+venv/
+env/
+.env
+
+#Bytecode
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+#Docker 
+mosquitto/data/
+mosquitto/log/

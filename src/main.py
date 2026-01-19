@@ -2,13 +2,31 @@ import asyncio
 import json
 import random
 import time
+import sys
+import os
+import logging
 from datetime import datetime
 from aiomqtt import Client
 from faker import Faker
 import config
 
-# Initialize fake data generator
+# Configuração de Logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+# Inicializa gerador de dados falsos
 fake = Faker()
+
+# --- CORREÇÃO OBRIGATÓRIA PARA WINDOWS ---
+# O ProactorEventLoop (padrão do Windows) não suporta add_reader/writer
+# que o aiomqtt usa. Precisamos forçar o SelectorEventLoop.
+if sys.platform.lower() == "win32" or os.name == "nt":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# -----------------------------------------
 
 async def simulate_sensor(sensor_id):
     """
@@ -34,17 +52,17 @@ async def simulate_sensor(sensor_id):
                 
                 # Reduced logging to avoid terminal clutter -- shows only every 1000th sensor
                 if sensor_id % 1000 == 0:
-                    print(f"[DEBUG] Sensor {sensor_id} sent data: {payload['value']}")
+                    logger.info(f"Sensor {sensor_id} sent data: {payload['value']}")
                 
                 # Await interval before next transmission | Simulates real-time delay
                 await asyncio.sleep(config.INTERVAL_SECONDS)
                 
     except Exception as e:
-        print(f"[ERROR] Sensor {sensor_id} failed: {e}")
+        logger.error(f"Sensor {sensor_id} failed: {e}")
 
 async def main():
-    print(f"--- STARTING LOAD TEST: {config.NUM_SENSORS} SENSORS ---")
-    print(f"Target: {config.MQTT_BROKER}:{config.MQTT_PORT}")
+    logger.info(f"--- STARTING LOAD TEST: {config.NUM_SENSORS} SENSORS ---")
+    logger.info(f"Target: {config.MQTT_BROKER}:{config.MQTT_PORT}")
     
     tasks = []
     
@@ -54,7 +72,7 @@ async def main():
         
         if i % config.BATCH_SIZE == 0:
             await asyncio.sleep(0.5)  # Brief pause to stabilize
-            print(f"[SYSTEM] {i} sensors initialized...")
+            logger.info(f"[SYSTEM] {i} sensors initialized...")
 
     # Keep all tasks running indefinitely
     await asyncio.gather(*tasks)
@@ -64,4 +82,4 @@ if __name__ == "__main__":
         # Main Asyncio Loop
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n[SYSTEM] Test stopped by user.")
+        logger.info("\n[SYSTEM] Test stopped by user.")

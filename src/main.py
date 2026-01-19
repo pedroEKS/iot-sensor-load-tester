@@ -21,12 +21,8 @@ logger = logging.getLogger(__name__)
 # Inicializa gerador de dados falsos
 fake = Faker()
 
-# --- CORREÇÃO OBRIGATÓRIA PARA WINDOWS ---
-# O ProactorEventLoop (padrão do Windows) não suporta add_reader/writer
-# que o aiomqtt usa. Precisamos forçar o SelectorEventLoop.
 if sys.platform.lower() == "win32" or os.name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# -----------------------------------------
 
 async def simulate_sensor(sensor_id):
     """
